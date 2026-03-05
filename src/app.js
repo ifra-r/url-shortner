@@ -8,15 +8,12 @@ const app = express();
 app.use(express.json());        // parse JSON request bodies
 
 
-const rateLimiter = require('./middleware/rateLimiter');
-//  every request hits the rate limiter first
-
-// // apply rate limiting to certain routes 
-// router.post('/', rateLimiter, createUrl);
-// router.get('/:slug', rateLimiter, redirectUrl);
-
-
-app.use(rateLimiter);   // globally used so effects all routes but can be applied to only post and get if needed
+// const rateLimiter = require('./middleware/rateLimiter');
+// //  every request hits the rate limiter first
+// // // apply rate limiting to certain routes 
+// // router.post('/', rateLimiter, createUrl);
+// // router.get('/:slug', rateLimiter, redirectUrl);
+// app.use(rateLimiter);   // globally used so effects all routes but can be applied to only post and get if needed
 
 
 // Routes ========
