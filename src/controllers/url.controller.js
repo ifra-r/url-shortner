@@ -1,4 +1,5 @@
 const pool = require('../db');
+const redis = require('../cache');
 const { generateSlug, isValidUrl, validateAlias } = require('../utils/urlHelpers');
 const MAX_COLLISION_RETRIES = 5;
 
@@ -99,10 +100,93 @@ const createUrl = async (req, res) => {
   }
 };
 
+
+
+// ========================= REDIRECTION =========================
+
+
+// ---  compute TTL in seconds for Redis ---
+function computeTTL(expiresAt) {
+  const DEFAULT_TTL = 60 * 60 * 24; // 1 day in seconds
+  if (!expiresAt) return DEFAULT_TTL;
+  const ttl = Math.floor((new Date(expiresAt) - new Date()) / 1000);
+  // if already expired or less than 1s, return 0
+  return Math.max(0, Math.min(ttl, DEFAULT_TTL));
+}
+
+// get cached URL from Redis before hitting DB
+async function getCached(slug) {
+  try {
+    const cached = await redis.get(`slug:${slug}`);
+
+    if (cached) {
+      // temp logging
+      console.log('Cache hit for slug:', slug);
+      return cached;
+    }
+    // temp logging for cache miss
+    console.log('Cache miss for slug:', slug);
+    return null; // Redis miss
+  } catch {
+    return null; // Redis failure — fallback to DB
+  }
+}
+
+// --- store cache URL in Redis with correct TTL ---
+async function setCached(slug, originalUrl, expiresAt) {
+  try {
+    const ttl = computeTTL(expiresAt);
+    if (ttl > 0) {
+      await redis.set(`slug:${slug}`, originalUrl, { EX: ttl });
+    }
+  } catch (err) {
+    console.error('Redis set error:', err); // non-fatal, DB is source of truth
+  }
+}
+
+
+// Redirect from short URL to original URL
+// const redirectUrl = async (req, res) => {
+//   const { slug } = req.params;      // // grab the slug from the URL, e.g., "jH4IjOey"
+//   try {
+//     // Look up the original URL in the DB
+//     const result = await pool.query(
+//       'SELECT original_url, expires_at FROM urls WHERE short_url = $1',
+//       [slug]
+//     );
+
+//     // If no matching slug, send 404
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ error: 'Short URL not found.' });
+//     }
+
+//     const row = result.rows[0];
+
+//     // check if expired
+//     if (isExpired(row)) {
+//       return res.status(410).json({ error: 'This short URL has expired.' });
+//     }
+
+//     // Redirect to the original URL with HTTP 302 (temporary redirect)
+//     return res.redirect(302, result.rows[0].original_url);
+//   } catch (err) {
+//     console.error('Error redirecting:', err);
+//     return res.status(500).json({ error: 'Internal server error.' });
+//   }
+// };
+
+
+
 // Redirect from short URL to original URL
 const redirectUrl = async (req, res) => {
   const { slug } = req.params;      // // grab the slug from the URL, e.g., "jH4IjOey"
   try {
+    // Check Redis first
+    const cached = await getCached(slug);
+    if (cached) {
+      return res.redirect(302, cached);
+    }
+
     // Look up the original URL in the DB
     const result = await pool.query(
       'SELECT original_url, expires_at FROM urls WHERE short_url = $1',
@@ -118,15 +202,19 @@ const redirectUrl = async (req, res) => {
 
     // check if expired
     if (isExpired(row)) {
+      // log expired access
+      console.log('Attempt to access expired slug:', slug);
       return res.status(410).json({ error: 'This short URL has expired.' });
     }
 
+    // If miss → fetch DB → cache result with correct TTL
+    await setCached(slug, row.original_url, row.expires_at);
+
     // Redirect to the original URL with HTTP 302 (temporary redirect)
-    return res.redirect(302, result.rows[0].original_url);
+    return res.redirect(302, row.original_url);
   } catch (err) {
     console.error('Error redirecting:', err);
     return res.status(500).json({ error: 'Internal server error.' });
   }
 };
-
 module.exports = { createUrl, redirectUrl }; 
