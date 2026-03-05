@@ -7,6 +7,7 @@ const createTable = async () => {
       short_url VARCHAR(10) UNIQUE NOT NULL,
       original_url TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
+      expires_at TIMESTAMP DEFAULT NOW() + INTERVAL '30 days'
     );
   `;
   try {
