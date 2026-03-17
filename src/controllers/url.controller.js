@@ -1,4 +1,5 @@
 const pool = require('../db');
+// imports 
 const { 
   generateSlug, 
   isValidUrl, 
@@ -11,6 +12,8 @@ const {
   getCached, 
   setCached 
 } = require('../utils/urlHelpers');
+const { pushClickEvent } = require('../utils/clickHelpers');
+const client = require('../cache');
 
 // POST /api/urls — Create a shortened URL
 const createUrl = async (req, res) => {
@@ -57,7 +60,10 @@ const redirectUrl = async (req, res) => {
   try {
     // Check Redis first
     const cached = await getCached(slug);
-    if (cached) {
+    if (cached) { 
+      // push click event to Redis queue — fire and forget, does not block redirect
+      pushClickEvent(slug, req);
+
       return res.redirect(302, cached);
     }
 
@@ -83,13 +89,18 @@ const redirectUrl = async (req, res) => {
 
     // If miss → fetch DB → cache result with correct TTL
     await setCached(slug, row.original_url, row.expires_at);
+ 
+    // push click event to Redis queue — fire and forget, does not block redirect
+    pushClickEvent(slug, req); 
 
     // Redirect to the original URL with HTTP 302 (temporary redirect)
     return res.redirect(302, row.original_url);
-  } catch (err) {
+  } 
+  catch (err) {
     console.error('Error redirecting:', err);
     return res.status(500).json({ error: 'Internal server error.' });
-  }
+  } 
+
 };
 
 module.exports = { createUrl, redirectUrl };

@@ -6,7 +6,7 @@ require('dotenv').config();
 const express = require('express');
 const app = express(); 
 app.use(express.json());        // parse JSON request bodies
-
+const { startClickWorker } = require('./workers/clickWorker');
 
 // const rateLimiter = require('./middleware/rateLimiter');
 // //  every request hits the rate limiter first
@@ -30,6 +30,8 @@ app.use('/', require('./routes/url.routes'));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  // start async click tracking worker once server is up
+  startClickWorker();
 });
 
 module.exports = app;       // export app obj
