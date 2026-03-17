@@ -53,4 +53,54 @@ function startClickWorker() {
   setInterval(drainClickQueue, DRAIN_INTERVAL_MS);
 }
 
+// ------------------ daily aggregation !!!
+
+// Why batch aggregation instead of incrementing per click?
+// 1. Avoids heavy DB writes per request (better performance at scale)
+// 2. Prevents race conditions with concurrent updates
+// 3. Keeps raw click data for detailed analytics (IP, user agent, timestamps)
+// 4. Enables efficient time-series queries (daily stats) without scanning huge tables
+
+// --- aggregate raw clicks into clicks_daily for yesterday ---
+async function aggregateDailyClicks() {
+  try {
+    // upsert yesterday's click counts from raw clicks table into clicks_daily
+    await pool.query(`
+      INSERT INTO clicks_daily (slug, date, click_count)
+      SELECT slug, DATE(clicked_at) AS date, COUNT(*) AS click_count
+      FROM clicks
+      WHERE DATE(clicked_at) = CURRENT_DATE - INTERVAL '1 day'
+      GROUP BY slug, DATE(clicked_at)
+      ON CONFLICT (slug, date)
+      DO UPDATE SET click_count = EXCLUDED.click_count
+    `);
+    console.log('Click worker: daily aggregation complete');
+  } catch (err) {
+    console.error('Click worker aggregation error:', err);
+  }
+}
+
+// --- Helper: schedule a job to run at midnight ---
+function scheduleAtMidnight(job) {
+  const now = new Date();
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0); // next midnight
+  const msUntilMidnight = midnight - now;
+
+  console.log(`Daily aggregation scheduled in ${Math.round(msUntilMidnight / 1000 / 60)} minutes`);
+
+  // run once at midnight, then every 24h
+  setTimeout(() => {
+    job();
+    setInterval(job, 24 * 60 * 60 * 1000);
+  }, msUntilMidnight);
+}
+
+// --- Start worker: drain queue on interval + aggregate daily at midnight ---
+function startClickWorker() {
+  console.log(`Click worker started — draining every ${DRAIN_INTERVAL_MS / 1000}s`);
+  setInterval(drainClickQueue, DRAIN_INTERVAL_MS);
+  scheduleAtMidnight(aggregateDailyClicks);
+}
+
 module.exports = { startClickWorker };
