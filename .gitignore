@@ -1,6 +1,7 @@
 .env
-node_modules
+node_modules/
 docs
 img
-
+docker-compose.override.yml
+*.log
 

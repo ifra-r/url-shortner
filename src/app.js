@@ -1,5 +1,8 @@
 // entry point
 
+// Start server ===? use port from env var ==> else use 3000
+const PORT = process.env.PORT || 3000;
+
 // Load environment variables from .env
 // Set up Express and JSON body parsing middleware.
 require('dotenv').config();
@@ -7,6 +10,15 @@ const express = require('express');
 const app = express(); 
 app.use(express.json());        // parse JSON request bodies
 const { startClickWorker } = require('./workers/clickWorker');
+
+const { createTable } = require('./dbSetup');
+
+// on startup --> call create table
+app.listen(PORT, async () => {
+  await createTable();
+  console.log(`Server running on port ${PORT}`);
+  startClickWorker();
+});
 
 // const rateLimiter = require('./middleware/rateLimiter');
 // //  every request hits the rate limiter first
@@ -26,8 +38,9 @@ app.use('/api/urls', urlRoutes);
 // GET /:slug → redirect to original URL
 app.use('/', require('./routes/url.routes'));
 
-// Start server ===? use port from env var ==> else use 3000
-const PORT = process.env.PORT || 3000;
+
+// const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   // start async click tracking worker once server is up
