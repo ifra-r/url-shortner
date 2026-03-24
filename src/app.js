@@ -14,6 +14,12 @@ const { startClickWorker } = require('./workers/clickWorker');
 const { createTable } = require('./dbSetup');
 const cors = require('cors');
 
+// mount swagger UI
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger');
+// API docs — available at /api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // on startup --> call create table
 app.listen(PORT, async () => {
   await createTable();

@@ -5,5 +5,22 @@ img
 docker-compose.override.yml
 *.log
 
+client/node_modules/  
+client/.env
 
-client/node_modules/
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS junk
+.DS_Store
+
+# editor junk
+.vscode/
+.idea/
+
+# build outputs
+dist/
+client/dist/
+build/

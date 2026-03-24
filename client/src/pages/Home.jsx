@@ -35,7 +35,7 @@ export default function Home() {
           Shorten any URL
         </h1>
         <p className="text-sm" style={{ color: '#888888' }}>
-          Fast, clean, no noise.
+          Shrink it and share it.
         </p>
       </div>
 
