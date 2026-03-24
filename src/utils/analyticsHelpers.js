@@ -2,23 +2,22 @@
 
 const ITEMS_PER_PAGE = 20;      //raw clicks per page
 
-// --- fetch total clicks for a slug from clicks_daily ---
+// --- Helper: fetch total clicks for a slug ---
 async function getTotalClicks(slug, pool) {
-
-    // COALESCE(sum(),0) --> makes sure zero clicks don’t return null.
   const result = await pool.query(
-    'SELECT COALESCE(SUM(click_count), 0) AS total FROM clicks_daily WHERE slug = $1',
-    [slug]      
+    'SELECT COUNT(*) AS total FROM clicks WHERE slug = $1',
+    [slug]
   );
   return parseInt(result.rows[0].total);
 }
 
-// --- fetch clicks per day for a slug ---
+// --- Helper: fetch clicks per day for a slug ---
 async function getClicksPerDay(slug, pool) {
   const result = await pool.query(
-    `SELECT date, click_count AS count
-     FROM clicks_daily
+    `SELECT DATE(clicked_at) AS date, COUNT(*) AS count
+     FROM clicks
      WHERE slug = $1
+     GROUP BY DATE(clicked_at)
      ORDER BY date DESC`,
     [slug]
   );

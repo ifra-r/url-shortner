@@ -5,3 +5,5 @@ img
 docker-compose.override.yml
 *.log
 
+
+client/node_modules/

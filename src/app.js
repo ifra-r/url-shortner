@@ -1,7 +1,7 @@
 // entry point
 
 // Start server ===? use port from env var ==> else use 3000
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;    // was 3000
 
 // Load environment variables from .env
 // Set up Express and JSON body parsing middleware.
@@ -12,6 +12,7 @@ app.use(express.json());        // parse JSON request bodies
 const { startClickWorker } = require('./workers/clickWorker');
 
 const { createTable } = require('./dbSetup');
+const cors = require('cors');
 
 // on startup --> call create table
 app.listen(PORT, async () => {
@@ -19,6 +20,18 @@ app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   startClickWorker();
 });
+
+
+// alow req form frontend
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+app.use(cors({
+  origin: (origin, callback) => {
+    // allow requests with no origin (curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('CORS not allowed'));
+  },
+}));
 
 // const rateLimiter = require('./middleware/rateLimiter');
 // //  every request hits the rate limiter first

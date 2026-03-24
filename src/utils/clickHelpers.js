@@ -8,7 +8,8 @@ const CLICK_QUEUE_KEY = 'clicks:queue';
 function pushClickEvent(slug, req) {
   const event = JSON.stringify({
     slug,
-    ip: req.ip,
+    // ip: req.ip,
+    ip: req.ip?.replace('::ffff:', '') || null,
     userAgent: req.headers['user-agent'] || null,
     clickedAt: new Date().toISOString(),
   });
