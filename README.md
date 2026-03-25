@@ -16,11 +16,8 @@ This URL Shortener is a fast, minimalist URL shortening service that lets users 
    Test endpoints without the frontend using the deployed backend:  
    `https://url-shortner-production-24ea.up.railway.app/api/urls`  
    Examples are provided in the [Curl Examples](#curl-examples) section below.
- 
-[View Demo](https://<your-username>.github.io/<repo-name>/demo.html) 
-<!-- demo:
-<video src="./demo.mp4" autoplay loop muted></video> -->
 
+[Click here to view the demo](https://drive.google.com/file/d/15UxhKQ1vG2tT_YsE_3MB-SYIz4o0rmwZ/view?usp=sharing)
 ---
 
 ## Features
